@@ -123,10 +123,7 @@ class BitrixMonitor:
         self._playwright = await async_playwright().start()
         storage = self.session_file if os.path.exists(self.session_file) else None
 
-        self._browser = await self._playwright.chromium.launch(
-            headless=False,
-            args=["--no-sandbox", "--disable-setuid-sandbox", "--start-maximized"],
-        )
+        self._browser = await self._launch_browser()
 
         ctx_kwargs: dict = {"viewport": {"width": 1280, "height": 900}}
         if storage:
@@ -142,6 +139,31 @@ class BitrixMonitor:
 
         self._running = True
         await self._monitor_loop(on_new_message)
+
+    async def _launch_browser(self) -> Browser:
+        """Try Edge → Chrome → downloaded Chromium, return first that works."""
+        launch_attempts = [
+            # Microsoft Edge — pre-installed on every Windows 10/11 machine
+            dict(channel="msedge", headless=False),
+            # Google Chrome — most common browser
+            dict(channel="chrome", headless=False),
+            # Playwright's own Chromium (requires `playwright install chromium`)
+            dict(headless=False, args=["--no-sandbox", "--disable-setuid-sandbox"]),
+        ]
+        last_exc: Exception = RuntimeError("No browser available")
+        for kwargs in launch_attempts:
+            try:
+                browser = await self._playwright.chromium.launch(**kwargs)
+                logger.info("Browser launched with: %s", kwargs)
+                return browser
+            except Exception as exc:
+                last_exc = exc
+                logger.debug("Browser launch failed (%s): %s", kwargs, exc)
+        raise RuntimeError(
+            "Не удалось запустить браузер.\n"
+            "Установите Microsoft Edge или Google Chrome,\n"
+            "либо выполните: playwright install chromium"
+        ) from last_exc
 
     async def send_message(self, text: str) -> bool:
         """Type and send a message in the currently open dialog."""

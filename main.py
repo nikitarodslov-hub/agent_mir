@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 from config import Config
 from agent.orchestrator import AgentOrchestrator
 from gui.overlay import OverlayWindow
+from gui.setup_dialog import SetupDialog
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,50 +30,41 @@ logger = logging.getLogger("main")
 
 
 def main() -> None:
-    config = Config.load()
-
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(True)
 
-    # Validate required settings before starting
-    if not config.CLAUDE_API_KEY:
+    config = Config.load()
+
+    # ── First-run setup dialog ──────────────────────────────────────── #
+    if not config.is_complete():
+        dlg = SetupDialog(config)
+        if dlg.exec_() != SetupDialog.Accepted:
+            sys.exit(0)
+        # config is mutated & saved inside SetupDialog._on_accept
+
+    # ── Sanity check (should not happen after dialog) ───────────────── #
+    if not config.is_complete():
         QMessageBox.critical(
             None,
             "Ошибка конфигурации",
-            "CLAUDE_API_KEY не задан.\n\nСоздайте файл .env на основе .env.example\n"
-            "и укажите ваш ключ Claude API.",
+            "CLAUDE_API_KEY или BITRIX_URL не заданы.\n"
+            "Перезапустите программу и заполните настройки.",
         )
         sys.exit(1)
 
-    if not config.BITRIX_URL:
-        QMessageBox.critical(
-            None,
-            "Ошибка конфигурации",
-            "BITRIX_URL не задан.\n\nДобавьте URL вашего Битрикс24 в файл .env",
-        )
-        sys.exit(1)
-
-    # async loop lives in a daemon thread
+    # ── Build GUI ────────────────────────────────────────────────────── #
     async_loop = asyncio.new_event_loop()
-
-    # ------------------------------------------------------------------ #
-    # Callbacks from orchestrator → GUI  (called in worker thread,
-    # bridged to main thread via Qt signals inside OverlayWindow)
-    # ------------------------------------------------------------------ #
-
     orchestrator: AgentOrchestrator | None = None
 
     def on_send(text: str) -> None:
-        if orchestrator is None:
-            return
-        asyncio.run_coroutine_threadsafe(
-            orchestrator.send_and_continue(text), async_loop
-        )
+        if orchestrator is not None:
+            asyncio.run_coroutine_threadsafe(
+                orchestrator.send_and_continue(text), async_loop
+            )
 
     def on_skip() -> None:
-        if orchestrator is None:
-            return
-        orchestrator.skip_current()
+        if orchestrator is not None:
+            orchestrator.skip_current()
 
     window = OverlayWindow(on_send=on_send, on_skip=on_skip)
 
@@ -82,10 +74,7 @@ def main() -> None:
         on_response_ready=window.show_response,
     )
 
-    # ------------------------------------------------------------------ #
-    # Start the async worker thread
-    # ------------------------------------------------------------------ #
-
+    # ── Async worker thread ──────────────────────────────────────────── #
     def run_worker() -> None:
         asyncio.set_event_loop(async_loop)
         try:
@@ -94,8 +83,7 @@ def main() -> None:
             logger.error("Worker thread crashed: %s", exc)
             window.set_status(f"Ошибка: {exc}")
 
-    worker = threading.Thread(target=run_worker, daemon=True, name="async-worker")
-    worker.start()
+    threading.Thread(target=run_worker, daemon=True, name="async-worker").start()
 
     sys.exit(app.exec_())
 
