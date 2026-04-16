@@ -1,9 +1,4 @@
-"""
-First-run setup dialog.
-
-Shown automatically when required settings are missing.
-Saves to settings.json next to the executable.
-"""
+"""First-run setup dialog. Saves settings.json next to the executable."""
 from __future__ import annotations
 
 from PyQt5.QtCore import Qt
@@ -21,54 +16,23 @@ from PyQt5.QtWidgets import (
 from .styles import Colors
 
 _STYLE = f"""
-QDialog {{
-    background-color: {Colors.BG};
-    color: {Colors.TEXT};
-}}
-QLabel {{
-    color: {Colors.TEXT};
-    font-size: 12px;
-}}
-QLabel#hint {{
-    color: {Colors.TEXT_DIM};
-    font-size: 10px;
-}}
-QLabel#title {{
-    color: {Colors.ACCENT_GREEN};
-    font-size: 14px;
-    font-weight: bold;
-    padding-bottom: 4px;
-}}
-QLabel#section {{
-    color: {Colors.ACCENT_GREEN};
-    font-size: 11px;
-    font-weight: bold;
-    padding-top: 6px;
-}}
+QDialog {{ background-color: {Colors.BG}; color: {Colors.TEXT}; }}
+QLabel  {{ color: {Colors.TEXT}; font-size: 12px; }}
+QLabel#hint    {{ color: {Colors.TEXT_DIM}; font-size: 10px; }}
+QLabel#title   {{ color: {Colors.ACCENT_GREEN}; font-size: 14px; font-weight: bold; }}
+QLabel#section {{ color: {Colors.ACCENT_GREEN}; font-size: 11px; font-weight: bold; padding-top: 6px; }}
 QLineEdit {{
-    background-color: {Colors.PANEL};
-    color: {Colors.TEXT};
-    border: 1px solid {Colors.BORDER};
-    border-radius: 4px;
-    padding: 6px 8px;
-    font-size: 12px;
-    min-width: 340px;
+    background-color: {Colors.PANEL}; color: {Colors.TEXT};
+    border: 1px solid {Colors.BORDER}; border-radius: 4px;
+    padding: 6px 8px; font-size: 12px; min-width: 340px;
 }}
-QLineEdit:focus {{
-    border: 1px solid {Colors.ACCENT_GREEN};
-}}
+QLineEdit:focus {{ border: 1px solid {Colors.ACCENT_GREEN}; }}
 QDialogButtonBox QPushButton {{
-    background-color: {Colors.BTN_SEND};
-    color: white;
-    font-weight: bold;
-    border-radius: 4px;
-    padding: 7px 20px;
-    border: none;
-    min-width: 80px;
+    background-color: {Colors.BTN_SEND}; color: white;
+    font-weight: bold; border-radius: 4px;
+    padding: 7px 20px; border: none; min-width: 80px;
 }}
-QDialogButtonBox QPushButton:hover {{
-    background-color: {Colors.BTN_SEND_HOVER};
-}}
+QDialogButtonBox QPushButton:hover {{ background-color: {Colors.BTN_SEND_HOVER}; }}
 """
 
 
@@ -90,10 +54,6 @@ class SetupDialog(QDialog):
         title.setObjectName("title")
         layout.addWidget(title)
 
-        desc = QLabel("Заполните поля (отмечены *). Настройки сохранятся автоматически.")
-        desc.setObjectName("hint")
-        layout.addWidget(desc)
-
         form = QFormLayout()
         form.setSpacing(8)
         form.setLabelAlignment(Qt.AlignRight)
@@ -108,9 +68,7 @@ class SetupDialog(QDialog):
         self._key_edit.setEchoMode(QLineEdit.Password)
         form.addRow("* API Key:", self._key_edit)
 
-        key_hint = QLabel("console.anthropic.com → API Keys → Create Key")
-        key_hint.setObjectName("hint")
-        form.addRow("", key_hint)
+        form.addRow("", _hint("console.anthropic.com → API Keys → Create Key"))
 
         # ── Bitrix24 ─────────────────────────────────────────────── #
         sec2 = QLabel("Битрикс24")
@@ -119,25 +77,16 @@ class SetupDialog(QDialog):
 
         self._bitrix_edit = QLineEdit(self._config.BITRIX_URL)
         self._bitrix_edit.setPlaceholderText("https://b24-xxx.bitrix24.ru")
-        form.addRow("* URL сайта:", self._bitrix_edit)
+        form.addRow("* URL:", self._bitrix_edit)
 
-        self._webhook_edit = QLineEdit(self._config.BITRIX_WEBHOOK)
-        self._webhook_edit.setPlaceholderText(
-            "https://b24-xxx.bitrix24.ru/rest/1/TOKEN/"
-        )
-        form.addRow("* Webhook URL:", self._webhook_edit)
-
-        wh_hint = QLabel(
-            "Как получить: Настройки (шестерёнка) → Разработчикам\n"
-            "→ Входящий вебхук → Добавить\n"
-            "Права: IM (чтение+запись), Открытые линии (чтение+запись)\n"
-            "Скопируйте URL вида: .../rest/1/abc123xyz/"
-        )
-        wh_hint.setObjectName("hint")
-        form.addRow("", wh_hint)
+        form.addRow("", _hint(
+            "После запуска откроется браузер с Битрикс24.\n"
+            "Войдите вручную — сессия сохранится автоматически.\n"
+            "Агент сам найдёт раздел Открытые линии."
+        ))
 
         # ── MoySklad ──────────────────────────────────────────────── #
-        sec3 = QLabel("МойСклад (необязательно — для проверки склада)")
+        sec3 = QLabel("МойСклад (необязательно)")
         sec3.setObjectName("section")
         form.addRow(sec3)
 
@@ -165,27 +114,24 @@ class SetupDialog(QDialog):
     def _on_accept(self) -> None:
         api_key = self._key_edit.text().strip()
         bitrix_url = self._bitrix_edit.text().strip().rstrip("/")
-        webhook = self._webhook_edit.text().strip().rstrip("/") + "/"
 
         if not api_key:
             QMessageBox.warning(self, "Ошибка", "Укажите Claude API Key.")
             return
         if not bitrix_url.startswith("http"):
-            QMessageBox.warning(self, "Ошибка", "Укажите URL Битрикс24 (начинается с https://).")
-            return
-        if "rest/" not in webhook:
-            QMessageBox.warning(
-                self,
-                "Ошибка",
-                "Webhook URL должен выглядеть так:\n"
-                "https://b24-xxx.bitrix24.ru/rest/1/TOKEN/",
-            )
+            QMessageBox.warning(self, "Ошибка", "Укажите URL Битрикс24.")
             return
 
         self._config.CLAUDE_API_KEY = api_key
         self._config.BITRIX_URL = bitrix_url
-        self._config.BITRIX_WEBHOOK = webhook
         self._config.MOYSKLAD_LOGIN = self._ms_login_edit.text().strip()
         self._config.MOYSKLAD_PASSWORD = self._ms_pass_edit.text().strip()
         self._config.save()
         self.accept()
+
+
+def _hint(text: str) -> QLabel:
+    lbl = QLabel(text)
+    lbl.setObjectName("hint")
+    lbl.setWordWrap(True)
+    return lbl

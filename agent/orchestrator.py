@@ -2,6 +2,7 @@
 Central coordinator: ties together Bitrix24 monitor, MoySklad API,
 and Claude AI. Communicates results back to the GUI via callbacks.
 """
+from __future__ import annotations
 
 import asyncio
 import logging
@@ -30,37 +31,33 @@ class AgentOrchestrator:
         config,
         on_status: Callable[[str], None],
         on_response_ready: Callable[[dict], None],
-    ):
+    ) -> None:
         self._config = config
         self._on_status = on_status
         self._on_response_ready = on_response_ready
 
         self._monitor = BitrixMonitor(
             bitrix_url=config.BITRIX_URL,
-            webhook_url=config.BITRIX_WEBHOOK,
             session_file=config.SESSION_FILE,
             processed_file=config.PROCESSED_FILE,
+            selectors_file=config.SELECTORS_FILE,
+            debug_screenshot=config.DEBUG_SCREENSHOT,
         )
         self._moysklad = MoySkladAPI(config.MOYSKLAD_LOGIN, config.MOYSKLAD_PASSWORD)
         self._claude = ClaudeAI(config.CLAUDE_API_KEY)
 
         self._processed_today = 0
-        self._busy = False  # True while waiting for manager to click Send/Skip
+        self._busy = False
         self._pending_queue: asyncio.Queue = asyncio.Queue()
 
-    # ------------------------------------------------------------------ #
-    # Public API (called from GUI thread via run_coroutine_threadsafe)
-    # ------------------------------------------------------------------ #
+    # ── Public API ─────────────────────────────────────────────────── #
 
     async def start(self) -> None:
         self._on_status("Запуск браузера…")
-        # Start the queue consumer first
         asyncio.ensure_future(self._process_queue())
-        # This blocks until browser closes
         await self._monitor.start(on_new_message=self._enqueue_message)
 
     async def send_and_continue(self, text: str) -> None:
-        """Called when manager clicks ОТПРАВИТЬ."""
         self._on_status("Отправляю…")
         ok = await self._monitor.send_message(text)
         if ok:
@@ -71,7 +68,6 @@ class AgentOrchestrator:
         self._busy = False
 
     def skip_current(self) -> None:
-        """Called when manager clicks ПРОПУСТИТЬ."""
         self._busy = False
         self._on_status("Пропущено")
 
@@ -79,18 +75,14 @@ class AgentOrchestrator:
     def processed_today(self) -> int:
         return self._processed_today
 
-    # ------------------------------------------------------------------ #
-    # Internal pipeline
-    # ------------------------------------------------------------------ #
+    # ── Internal pipeline ──────────────────────────────────────────── #
 
     async def _enqueue_message(self, data: dict) -> None:
         await self._pending_queue.put(data)
 
     async def _process_queue(self) -> None:
-        """Consume the pending message queue one at a time."""
         while True:
             data = await self._pending_queue.get()
-            # Wait until manager handled the previous one
             while self._busy:
                 await asyncio.sleep(0.5)
             self._busy = True
@@ -111,7 +103,6 @@ class AgentOrchestrator:
             device = self._moysklad.parse_device_from_message(last_msg)
             if device:
                 inventory_info = self._moysklad.search_inventory(device)
-                logger.info("Inventory result for '%s': %s", device, inventory_info)
 
         self._on_status("Готовлю ответ…")
         try:
@@ -127,7 +118,5 @@ class AgentOrchestrator:
             response = f"(Ошибка AI: {exc})\nНапишите ответ вручную."
 
         data["suggested_response"] = response
-        data["inventory_info"] = inventory_info
-
         self._on_status("Проверьте ответ")
         self._on_response_ready(data)
