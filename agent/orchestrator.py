@@ -37,7 +37,7 @@ class AgentOrchestrator:
 
         self._monitor = BitrixMonitor(
             bitrix_url=config.BITRIX_URL,
-            openlines_path=config.BITRIX_OPENLINES_PATH,
+            webhook_url=config.BITRIX_WEBHOOK,
             session_file=config.SESSION_FILE,
             processed_file=config.PROCESSED_FILE,
         )

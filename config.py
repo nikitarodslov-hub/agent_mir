@@ -2,7 +2,7 @@
 Configuration loader.
 
 Priority (highest → lowest):
-  1. settings.json  (written by the setup dialog, lives next to the exe)
+  1. settings.json  (written by the GUI setup dialog, lives next to the exe)
   2. .env file      (developer convenience)
   3. environment variables
 
@@ -49,6 +49,7 @@ def save_settings(data: dict) -> None:
 class Config:
     CLAUDE_API_KEY: str
     BITRIX_URL: str
+    BITRIX_WEBHOOK: str           # REST API webhook URL
     BITRIX_OPENLINES_PATH: str
     MOYSKLAD_LOGIN: str
     MOYSKLAD_PASSWORD: str
@@ -62,12 +63,13 @@ class Config:
             self.PROCESSED_FILE = str(APP_DIR / "processed_dialogs.json")
 
     def is_complete(self) -> bool:
-        return bool(self.CLAUDE_API_KEY and self.BITRIX_URL)
+        return bool(self.CLAUDE_API_KEY and self.BITRIX_URL and self.BITRIX_WEBHOOK)
 
     def to_dict(self) -> dict:
         return {
             "CLAUDE_API_KEY": self.CLAUDE_API_KEY,
             "BITRIX_URL": self.BITRIX_URL,
+            "BITRIX_WEBHOOK": self.BITRIX_WEBHOOK,
             "BITRIX_OPENLINES_PATH": self.BITRIX_OPENLINES_PATH,
             "MOYSKLAD_LOGIN": self.MOYSKLAD_LOGIN,
             "MOYSKLAD_PASSWORD": self.MOYSKLAD_PASSWORD,
@@ -78,9 +80,7 @@ class Config:
 
     @classmethod
     def load(cls) -> Config:
-        # Load .env from app dir first (silent if missing)
         load_dotenv(APP_DIR / ".env")
-
         js = _load_settings_json()
 
         def get(key: str, default: str = "") -> str:
@@ -89,6 +89,7 @@ class Config:
         return cls(
             CLAUDE_API_KEY=get("CLAUDE_API_KEY"),
             BITRIX_URL=get("BITRIX_URL", "https://b24-g1b864.bitrix24.ru").rstrip("/"),
+            BITRIX_WEBHOOK=get("BITRIX_WEBHOOK"),
             BITRIX_OPENLINES_PATH=get("BITRIX_OPENLINES_PATH", "/crm/chats/"),
             MOYSKLAD_LOGIN=get("MOYSKLAD_LOGIN"),
             MOYSKLAD_PASSWORD=get("MOYSKLAD_PASSWORD"),
