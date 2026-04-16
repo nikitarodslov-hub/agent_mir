@@ -1,29 +1,28 @@
 @echo off
-chcp 65001 >nul
 echo ============================================
-echo   Miraphone Agent — Сборка .exe
+echo   Miraphone Agent - Build EXE
 echo ============================================
 echo.
 
-echo Устанавливаю PyInstaller...
+echo Installing PyInstaller...
 pip install pyinstaller
 
 echo.
-echo Собираю приложение...
+echo Building application...
 pyinstaller miraphone_agent.spec --noconfirm
 
 if errorlevel 1 (
     echo.
-    echo [ОШИБКА] Сборка завершилась с ошибкой.
+    echo [ERROR] Build failed.
     pause
     exit /b 1
 )
 
 echo.
 echo ============================================
-echo   Готово!
-echo   Папка с программой: dist\MiraphoneAgent\
-echo   Запускать: MiraphoneAgent.exe
+echo   Done!
+echo   Application folder: dist\MiraphoneAgent\
+echo   Run: MiraphoneAgent.exe
 echo ============================================
 echo.
 pause

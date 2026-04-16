@@ -1,29 +1,32 @@
 @echo off
-chcp 65001 >nul
 echo ============================================
-echo   Miraphone Agent — Установка зависимостей
+echo   Miraphone Agent - Setup
 echo ============================================
 echo.
 
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [ОШИБКА] Python не найден.
-    echo Скачайте Python 3.9+ с https://python.org и установите.
-    echo При установке поставьте галочку "Add Python to PATH"
+    echo [ERROR] Python not found.
+    echo Please install Python 3.9+ from https://python.org
+    echo Make sure to check "Add Python to PATH" during install.
     pause
     exit /b 1
 )
 
-echo Устанавливаю зависимости...
+python --version
+echo.
+echo Installing dependencies...
 pip install -r requirements.txt
 if errorlevel 1 (
     echo.
-    echo [ОШИБКА] Не удалось установить зависимости.
+    echo [ERROR] Failed to install dependencies.
     pause
     exit /b 1
 )
 
 echo.
-echo Готово! Теперь запустите start.bat
+echo ============================================
+echo   Done! Now run start.bat
+echo ============================================
 echo.
 pause
