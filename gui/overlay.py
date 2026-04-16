@@ -9,15 +9,12 @@ from datetime import datetime
 from typing import Callable, Optional
 
 from PyQt5.QtCore import QObject, Qt, pyqtSignal
-from PyQt5.QtGui import QColor, QFont, QPalette
 from PyQt5.QtWidgets import (
-    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QPushButton,
-    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
     QWidget,

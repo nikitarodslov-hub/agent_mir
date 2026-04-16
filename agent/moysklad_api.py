@@ -49,7 +49,7 @@ class MoySkladAPI:
             resp = requests.get(
                 f"{BASE_URL}/entity/product",
                 auth=self.auth,
-                params={"search": query, "limit": 50},
+                params={"search": query, "limit": 20},
                 timeout=10,
             )
             if resp.status_code != 200:
@@ -57,54 +57,58 @@ class MoySkladAPI:
 
             products = resp.json().get("rows", [])
             if not products:
-                return f"Товар '{query}' не найден на складе"
+                return f"Товар «{query}» не найден на складе"
 
-            product_ids = [p["id"] for p in products[:10]]
-            lines = self._get_stock_lines(products[:10], product_ids)
+            lines = []
+            for product in products[:8]:
+                line = self._build_stock_line(product)
+                if line:
+                    lines.append(line)
 
             if not lines:
-                return f"'{query}' есть в базе, но наличие = 0"
+                return f"«{query}» есть в базе, но сейчас нет в наличии (остаток = 0)"
             return "\n".join(lines)
         except Exception as e:
             return f"Ошибка МойСклад: {e}"
 
-    def _get_stock_lines(self, products: list, product_ids: list) -> list[str]:
-        lines = []
+    def _build_stock_line(self, product: dict) -> Optional[str]:
+        """Fetch stock for one product and return a formatted line, or None if out of stock."""
         try:
-            stock_resp = requests.get(
+            pid = product.get("id", "")
+            stock = self._get_product_stock(pid)
+            if stock <= 0:
+                return None
+
+            name = product.get("name", "Без названия")
+            sale_prices = product.get("salePrices", [])
+            price_kopecks = sale_prices[0].get("value", 0) if sale_prices else 0
+            sale_price = price_kopecks // 100
+
+            category = self._extract_category(name)
+            cat_str = f" [{category}]" if category else ""
+            price_str = f"{sale_price:,} руб." if sale_price else "цена не указана"
+            return f"• {name}{cat_str} — {stock} шт., {price_str}"
+        except Exception:
+            return None
+
+    def _get_product_stock(self, product_id: str) -> int:
+        """Return current stock quantity for a single product via filtered report."""
+        try:
+            resp = requests.get(
                 f"{BASE_URL}/report/stock/all",
                 auth=self.auth,
-                params={"limit": 100},
-                timeout=10,
+                params={
+                    "filter": f"assortment={BASE_URL}/entity/product/{product_id}",
+                    "limit": 1,
+                },
+                timeout=8,
             )
-            if stock_resp.status_code != 200:
-                return lines
-
-            stock_rows = {
-                row["meta"]["href"].split("/")[-1]: row
-                for row in stock_resp.json().get("rows", [])
-                if "meta" in row
-            }
-
-            for product in products:
-                pid = product["id"]
-                row = stock_rows.get(pid)
-                if not row:
-                    continue
-                qty = int(row.get("stock", 0))
-                if qty <= 0:
-                    continue
-
-                name = product.get("name", "Без названия")
-                # price in kopecks → rubles
-                sale_price = product.get("salePrices", [{}])[0].get("value", 0) // 100
-                category = self._extract_category(name)
-                cat_str = f" [{category}]" if category else ""
-                price_str = f"{sale_price:,} руб." if sale_price else "цена не указана"
-                lines.append(f"• {name}{cat_str} — {qty} шт., {price_str}")
+            if resp.status_code != 200:
+                return 0
+            rows = resp.json().get("rows", [])
+            return max(0, int(rows[0].get("stock", 0))) if rows else 0
         except Exception:
-            pass
-        return lines
+            return 0
 
     def _extract_category(self, name: str) -> str:
         m = CATEGORY_RE.search(name)

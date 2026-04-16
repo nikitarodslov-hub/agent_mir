@@ -1,0 +1,39 @@
+# Secrets and local config
+.env
+
+# Playwright browser session (contains cookies/tokens)
+bitrix_session.json
+
+# Processed dialogs cache
+processed_dialogs.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

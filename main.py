@@ -7,6 +7,7 @@ Architecture:
 
 Cross-thread communication uses PyQt5 signals (thread-safe).
 """
+from __future__ import annotations
 
 import asyncio
 import logging
