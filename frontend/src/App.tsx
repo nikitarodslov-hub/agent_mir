@@ -8,8 +8,19 @@ import FamilyTree from './pages/FamilyTree';
 import Search from './pages/Search';
 import Achievements from './pages/Achievements';
 import Profile from './pages/Profile';
+import LandingPage from './pages/LandingPage';
+import Pricing from './pages/Pricing';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import FAQ from './pages/FAQ';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Account from './pages/Account';
+import NotFound from './pages/NotFound';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Sider, Content } = Layout;
 
 const App: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -64,84 +75,161 @@ const App: React.FC = () => {
     }
   ];
 
+  const isPublicPage = (pathname: string) => {
+    return ['/landing', '/pricing', '/about', '/contact', '/faq', '/terms', '/privacy', '/'].includes(pathname);
+  };
+
   return (
     <Router>
-      <Layout style={{ minHeight: '100vh' }}>
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={collapsed}
-          style={{
-            overflow: 'auto',
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            bottom: 0,
-          }}
-        >
-          <div style={{ padding: '16px', textAlign: 'center', color: 'white' }}>
-            <h2>🌳 Семейные корни</h2>
-          </div>
-          <Menu
-            theme="dark"
-            mode="inline"
-            defaultSelectedKeys={['/']}
-            items={menuItems}
-          />
-        </Sider>
+      <Routes>
+        {/* Public pages with Navbar and Footer */}
+        <Route path="/" element={<><Navbar /><LandingPage /><Footer /></>} />
+        <Route path="/landing" element={<><Navbar /><LandingPage /><Footer /></>} />
+        <Route path="/pricing" element={<><Navbar /><Pricing /><Footer /></>} />
+        <Route path="/about" element={<><Navbar /><About /><Footer /></>} />
+        <Route path="/contact" element={<><Navbar /><Contact /><Footer /></>} />
+        <Route path="/faq" element={<><Navbar /><FAQ /><Footer /></>} />
+        <Route path="/terms" element={<><Navbar /><Terms /><Footer /></>} />
+        <Route path="/privacy" element={<><Navbar /><Privacy /><Footer /></>} />
 
-        <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
-          <Header
-            style={{
-              background: '#fff',
-              padding: '0 16px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <Button
-              type="text"
-              icon={collapsed ? '>>' : '<<'}
-              onClick={() => setCollapsed(!collapsed)}
-            />
+        {/* Authenticated pages with sidebar */}
+        <Route path="/dashboard" element={
+          <Layout style={{ minHeight: '100vh' }}>
+            <Sider
+              trigger={null}
+              collapsible
+              collapsed={collapsed}
+              style={{
+                overflow: 'auto',
+                height: '100vh',
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                bottom: 0,
+              }}
+            >
+              <div style={{ padding: '16px', textAlign: 'center', color: 'white' }}>
+                <h2>🌳 Семейные корни</h2>
+              </div>
+              <Menu
+                theme="dark"
+                mode="inline"
+                defaultSelectedKeys={['/']}
+                items={menuItems}
+              />
+            </Sider>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <Badge count={user.level} style={{ backgroundColor: '#52c41a' }}>
-                <span>{user.points} 🎖️</span>
-              </Badge>
+            <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
+              <Header
+                style={{
+                  background: '#fff',
+                  padding: '0 16px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Button
+                  type="text"
+                  icon={collapsed ? '>>' : '<<'}
+                  onClick={() => setCollapsed(!collapsed)}
+                />
 
-              <Dropdown menu={{ items: userMenuItems }}>
-                <Avatar icon={<UserOutlined />} size="large" style={{ cursor: 'pointer' }}>
-                  {user.avatar}
-                </Avatar>
-              </Dropdown>
-            </div>
-          </Header>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <Badge count={user.level} style={{ backgroundColor: '#52c41a' }}>
+                    <span>{user.points} 🎖️</span>
+                  </Badge>
 
-          <Content style={{ margin: '16px' }}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/tree" element={<FamilyTree />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/achievements" element={<Achievements />} />
-              <Route path="/profile" element={<Profile />} />
-            </Routes>
-          </Content>
+                  <Dropdown menu={{ items: userMenuItems }}>
+                    <Avatar icon={<UserOutlined />} size="large" style={{ cursor: 'pointer' }}>
+                      {user.avatar}
+                    </Avatar>
+                  </Dropdown>
+                </div>
+              </Header>
 
-          <Footer style={{ textAlign: 'center' }}>
-            © 2024 Семейные корни. Все права защищены.
-            <br />
-            <a href="https://familyroots.ru/about">О проекте</a>
-            {' | '}
-            <a href="https://familyroots.ru/privacy">Приватность</a>
-            {' | '}
-            <a href="https://familyroots.ru/terms">Условия</a>
-          </Footer>
-        </Layout>
-      </Layout>
+              <Content style={{ margin: '16px' }}>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/tree" element={<FamilyTree />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/account" element={<Account />} />
+                </Routes>
+              </Content>
+            </Layout>
+          </Layout>
+        } />
+
+        {/* Legacy authenticated routes */}
+        <Route path="/tree" element={
+          <Layout style={{ minHeight: '100vh' }}>
+            <Sider trigger={null} collapsible collapsed={collapsed}
+              style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0 }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'white' }}><h2>🌳 Семейные корни</h2></div>
+              <Menu theme="dark" mode="inline" defaultSelectedKeys={['/tree']} items={menuItems} />
+            </Sider>
+            <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
+              <Header style={{ background: '#fff', padding: '0 16px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button type="text" icon={collapsed ? '>>' : '<<'} onClick={() => setCollapsed(!collapsed)} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <Badge count={user.level} style={{ backgroundColor: '#52c41a' }}><span>{user.points} 🎖️</span></Badge>
+                  <Dropdown menu={{ items: userMenuItems }}><Avatar icon={<UserOutlined />} size="large" style={{ cursor: 'pointer' }}>{user.avatar}</Avatar></Dropdown>
+                </div>
+              </Header>
+              <Content style={{ margin: '16px' }}><FamilyTree /></Content>
+            </Layout>
+          </Layout>
+        } />
+
+        <Route path="/search" element={
+          <Layout style={{ minHeight: '100vh' }}>
+            <Sider trigger={null} collapsible collapsed={collapsed}
+              style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0 }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'white' }}><h2>🌳 Семейные корни</h2></div>
+              <Menu theme="dark" mode="inline" defaultSelectedKeys={['/search']} items={menuItems} />
+            </Sider>
+            <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
+              <Header style={{ background: '#fff', padding: '0 16px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button type="text" icon={collapsed ? '>>' : '<<'} onClick={() => setCollapsed(!collapsed)} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <Badge count={user.level} style={{ backgroundColor: '#52c41a' }}><span>{user.points} 🎖️</span></Badge>
+                  <Dropdown menu={{ items: userMenuItems }}><Avatar icon={<UserOutlined />} size="large" style={{ cursor: 'pointer' }}>{user.avatar}</Avatar></Dropdown>
+                </div>
+              </Header>
+              <Content style={{ margin: '16px' }}><Search /></Content>
+            </Layout>
+          </Layout>
+        } />
+
+        <Route path="/achievements" element={
+          <Layout style={{ minHeight: '100vh' }}>
+            <Sider trigger={null} collapsible collapsed={collapsed}
+              style={{ overflow: 'auto', height: '100vh', position: 'fixed', left: 0, top: 0, bottom: 0 }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'white' }}><h2>🌳 Семейные корни</h2></div>
+              <Menu theme="dark" mode="inline" defaultSelectedKeys={['/achievements']} items={menuItems} />
+            </Sider>
+            <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
+              <Header style={{ background: '#fff', padding: '0 16px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button type="text" icon={collapsed ? '>>' : '<<'} onClick={() => setCollapsed(!collapsed)} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <Badge count={user.level} style={{ backgroundColor: '#52c41a' }}><span>{user.points} 🎖️</span></Badge>
+                  <Dropdown menu={{ items: userMenuItems }}><Avatar icon={<UserOutlined />} size="large" style={{ cursor: 'pointer' }}>{user.avatar}</Avatar></Dropdown>
+                </div>
+              </Header>
+              <Content style={{ margin: '16px' }}><Achievements /></Content>
+            </Layout>
+          </Layout>
+        } />
+
+        {/* Account page */}
+        <Route path="/account" element={<><Navbar /><Account /><Footer /></>} />
+
+        {/* 404 Page */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </Router>
   );
 };
