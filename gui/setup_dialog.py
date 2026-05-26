@@ -15,24 +15,84 @@ from PyQt5.QtWidgets import (
 
 from .styles import Colors
 
+C = Colors
+
 _STYLE = f"""
-QDialog {{ background-color: {Colors.BG}; color: {Colors.TEXT}; }}
-QLabel  {{ color: {Colors.TEXT}; font-size: 12px; }}
-QLabel#hint    {{ color: {Colors.TEXT_DIM}; font-size: 10px; }}
-QLabel#title   {{ color: {Colors.ACCENT_GREEN}; font-size: 14px; font-weight: bold; }}
-QLabel#section {{ color: {Colors.ACCENT_GREEN}; font-size: 11px; font-weight: bold; padding-top: 6px; }}
+QDialog {{
+    background: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 #0d0d28, stop:1 {C.BG}
+    );
+    color: {C.TEXT};
+}}
+QLabel {{
+    color: {C.TEXT};
+    font-size: 12px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}}
+QLabel#hint {{
+    color: {C.TEXT_DIM};
+    font-size: 10px;
+    font-family: 'Consolas', monospace;
+}}
+QLabel#title {{
+    color: {C.CYAN};
+    font-size: 15px;
+    font-weight: bold;
+    font-family: 'Consolas', monospace;
+    letter-spacing: 1px;
+}}
+QLabel#section {{
+    color: {C.CYAN};
+    font-size: 11px;
+    font-weight: bold;
+    font-family: 'Consolas', monospace;
+    letter-spacing: 1px;
+    padding-top: 8px;
+}}
 QLineEdit {{
-    background-color: {Colors.PANEL}; color: {Colors.TEXT};
-    border: 1px solid {Colors.BORDER}; border-radius: 4px;
-    padding: 6px 8px; font-size: 12px; min-width: 340px;
+    background-color: {C.INPUT_BG};
+    color: {C.TEXT};
+    border: 1px solid {C.BORDER};
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 12px;
+    min-width: 340px;
+    font-family: 'Segoe UI', Arial, sans-serif;
 }}
-QLineEdit:focus {{ border: 1px solid {Colors.ACCENT_GREEN}; }}
+QLineEdit:focus {{
+    border: 1px solid {C.CYAN};
+}}
 QDialogButtonBox QPushButton {{
-    background-color: {Colors.BTN_SEND}; color: white;
-    font-weight: bold; border-radius: 4px;
-    padding: 7px 20px; border: none; min-width: 80px;
+    background: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 {C.BTN_SEND_H}, stop:1 {C.BTN_SEND}
+    );
+    color: {C.GREEN};
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 1px;
+    border-radius: 5px;
+    border: 1px solid {C.GREEN_DIM};
+    padding: 8px 22px;
+    min-width: 90px;
 }}
-QDialogButtonBox QPushButton:hover {{ background-color: {Colors.BTN_SEND_HOVER}; }}
+QDialogButtonBox QPushButton:hover {{
+    background: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 #1a8848, stop:1 {C.BTN_SEND_H}
+    );
+    color: white;
+}}
+QDialogButtonBox QPushButton[text="Отмена"] {{
+    background: {C.BTN_SKIP};
+    color: {C.TEXT_DIM};
+    border-color: {C.BORDER};
+}}
+QDialogButtonBox QPushButton[text="Отмена"]:hover {{
+    background: {C.BTN_SKIP_H};
+    color: {C.TEXT};
+}}
 """
 
 
@@ -48,29 +108,32 @@ class SetupDialog(QDialog):
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
-        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setContentsMargins(26, 22, 26, 22)
 
-        title = QLabel("Miraphone Agent — первый запуск")
+        title = QLabel("◆ MIRAPHONE AGENT")
         title.setObjectName("title")
         layout.addWidget(title)
+
+        sub = QLabel("Первый запуск — настройте подключения")
+        sub.setStyleSheet(f"color: {Colors.TEXT_DIM}; font-size: 11px; padding-bottom: 6px;")
+        layout.addWidget(sub)
 
         form = QFormLayout()
         form.setSpacing(8)
         form.setLabelAlignment(Qt.AlignRight)
 
-        # ── Claude API Key ────────────────────────────────────────── #
+        # Claude
         sec1 = QLabel("Claude AI")
         sec1.setObjectName("section")
         form.addRow(sec1)
 
         self._key_edit = QLineEdit(self._config.CLAUDE_API_KEY)
-        self._key_edit.setPlaceholderText("sk-ant-api03-...")
+        self._key_edit.setPlaceholderText("sk-ant-api03-…")
         self._key_edit.setEchoMode(QLineEdit.Password)
         form.addRow("* API Key:", self._key_edit)
-
         form.addRow("", _hint("console.anthropic.com → API Keys → Create Key"))
 
-        # ── Bitrix24 ─────────────────────────────────────────────── #
+        # Bitrix24
         sec2 = QLabel("Битрикс24")
         sec2.setObjectName("section")
         form.addRow(sec2)
@@ -78,14 +141,12 @@ class SetupDialog(QDialog):
         self._bitrix_edit = QLineEdit(self._config.BITRIX_URL)
         self._bitrix_edit.setPlaceholderText("https://b24-xxx.bitrix24.ru")
         form.addRow("* URL:", self._bitrix_edit)
-
         form.addRow("", _hint(
             "После запуска откроется браузер с Битрикс24.\n"
-            "Войдите вручную — сессия сохранится автоматически.\n"
-            "Агент сам найдёт раздел Открытые линии."
+            "Войдите вручную — сессия сохранится автоматически."
         ))
 
-        # ── MoySklad ──────────────────────────────────────────────── #
+        # MoySklad
         sec3 = QLabel("МойСклад (необязательно)")
         sec3.setObjectName("section")
         form.addRow(sec3)

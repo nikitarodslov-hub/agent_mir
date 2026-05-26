@@ -31,10 +31,12 @@ class AgentOrchestrator:
         config,
         on_status: Callable[[str], None],
         on_response_ready: Callable[[dict], None],
+        on_queue_update: Optional[Callable[[int], None]] = None,
     ) -> None:
         self._config = config
         self._on_status = on_status
         self._on_response_ready = on_response_ready
+        self._on_queue_update = on_queue_update
 
         self._monitor = BitrixMonitor(
             bitrix_url=config.BITRIX_URL,
@@ -77,12 +79,18 @@ class AgentOrchestrator:
 
     # ── Internal pipeline ──────────────────────────────────────────── #
 
+    def _notify_queue(self) -> None:
+        if self._on_queue_update:
+            self._on_queue_update(self._pending_queue.qsize())
+
     async def _enqueue_message(self, data: dict) -> None:
         await self._pending_queue.put(data)
+        self._notify_queue()
 
     async def _process_queue(self) -> None:
         while True:
             data = await self._pending_queue.get()
+            self._notify_queue()
             while self._busy:
                 await asyncio.sleep(0.5)
             self._busy = True
@@ -98,7 +106,7 @@ class AgentOrchestrator:
         data["question_type"] = q_type
 
         inventory_info: Optional[str] = None
-        if q_type == "availability" and self._moysklad.is_enabled():
+        if q_type in ("availability", "technical") and self._moysklad.is_enabled():
             self._on_status("Проверяю склад…")
             device = self._moysklad.parse_device_from_message(last_msg)
             if device:

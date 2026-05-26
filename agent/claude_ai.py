@@ -3,28 +3,40 @@ from .knowledge_base import COMPANY_KNOWLEDGE, QUESTION_TYPE_NAMES
 
 SOURCE_AVITO = "авито"
 
-SYSTEM_PROMPT_TEMPLATE = """Ты — помощник менеджера по продажам магазина Miraphone (I-Mart), магазин БУ техники Apple.
+SYSTEM_PROMPT = f"""Ты — опытный менеджер по продажам магазина Miraphone (I-Mart), специализирующегося на БУ технике Apple. Твоя цель — закрыть сделку или сделать следующий шаг к продаже.
 
-{knowledge}
+{COMPANY_KNOWLEDGE}
 
 ---
 
-ТВОЯ ЗАДАЧА:
-Написать ГОТОВЫЙ ответ клиенту от имени менеджера магазина.
-- Не объясняй свои действия, не пиши ничего лишнего — только текст ответа клиенту
-- Обращайся к клиенту по имени: {client_name}
-- Источник сообщения: {source}
-- Тип вопроса клиента: {question_type}
-{avito_note}
-- Пиши живым языком, дружелюбно, коротко
-- ОБЯЗАТЕЛЬНО заканчивай вопросом или призывом к действию
+ПРИНЦИПЫ ПРОДАЮЩЕГО ОТВЕТА:
+1. Пиши ТОЛЬКО текст ответа — без пояснений, без вводных фраз, без метакомментариев
+2. Обращайся к клиенту по имени
+3. Живой, дружелюбный тон — как опытный продавец, а не робот
+4. Максимум 1-2 эмодзи
+5. ВСЕГДА заканчивай вопросом или призывом к действию (CTA)
+6. Не используй слово «данный»
+
+ПРОДАЮЩИЕ ТЕХНИКИ:
+- При наличии товара: создавай лёгкую срочность («таких обычно 1-2 штуки»)
+- При вопросе о цене: сразу предлагай рассрочку как альтернативу
+- При возражении «дорого»: предложи категорию ниже ИЛИ рассрочку
+- При «подумаю»: предложи бесплатную бронь на 1 день
+- При наличии на складе: называй конкретные цены из данных склада
+- При отсутствии: предложи похожую модель или подписку на уведомление
+
+АВИТО — ОСОБЫЕ ПРАВИЛА:
+- Только «Категория А/Б/С» — никаких «отличный», «хороший»
+- Никаких контактных данных в переписке
+- Предлагай оформить сделку через Авито для безопасности
 """
 
-AVITO_NOTE = """
-!!! ИСТОЧНИК — АВИТО. Обязательные правила:
-- Описывай состояние ТОЛЬКО через категорию: Категория А / Категория Б / Категория С
-- Никаких слов "отличный", "хороший", "прекрасный"
-- Не указывай контактные данные
+
+AVITO_EXTRA = """
+ИСТОЧНИК: АВИТО. Строго соблюдай правила площадки:
+- Описывай состояние ТОЛЬКО через категорию: Категория А / Б / С
+- Нельзя: «отличный», «хороший», «прекрасный»
+- Нельзя: телефон, адрес, ссылки на другие сайты
 """
 
 
@@ -40,30 +52,31 @@ class ClaudeAI:
         inventory_info: str | None = None,
         question_type: str = "other",
     ) -> str:
-        avito_note = AVITO_NOTE if SOURCE_AVITO in source.lower() else ""
+        is_avito = SOURCE_AVITO in source.lower()
+        avito_block = AVITO_EXTRA if is_avito else ""
         q_type_name = QUESTION_TYPE_NAMES.get(question_type, question_type)
 
-        system = SYSTEM_PROMPT_TEMPLATE.format(
-            knowledge=COMPANY_KNOWLEDGE,
-            client_name=client_name,
-            source=source,
-            question_type=q_type_name,
-            avito_note=avito_note,
+        user_prompt = (
+            f"Клиент: {client_name}\n"
+            f"Источник: {source}\n"
+            f"Тип вопроса: {q_type_name}\n"
+            f"{avito_block}"
+            f"\nСообщение(я) клиента:\n"
+            + "\n".join(f"[{i+1}] {m}" for i, m in enumerate(messages))
         )
-
-        conversation_text = "\n".join(
-            f"[{i+1}] {msg}" for i, msg in enumerate(messages)
-        )
-        user_content = f"Сообщение(я) от клиента:\n{conversation_text}"
 
         if inventory_info:
-            user_content += f"\n\nДанные склада (МойСклад):\n{inventory_info}"
+            user_prompt += f"\n\nДанные склада (МойСклад):\n{inventory_info}"
 
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=600,
-            system=system,
-            messages=[{"role": "user", "content": user_content}],
+            system=[{
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{"role": "user", "content": user_prompt}],
         )
 
         return response.content[0].text.strip()

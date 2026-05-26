@@ -35,14 +35,11 @@ def main() -> None:
 
     config = Config.load()
 
-    # ── First-run setup dialog ──────────────────────────────────────── #
     if not config.is_complete():
         dlg = SetupDialog(config)
         if dlg.exec_() != SetupDialog.Accepted:
             sys.exit(0)
-        # config is mutated & saved inside SetupDialog._on_accept
 
-    # ── Sanity check (should not happen after dialog) ───────────────── #
     if not config.is_complete():
         QMessageBox.critical(
             None,
@@ -52,7 +49,6 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # ── Build GUI ────────────────────────────────────────────────────── #
     async_loop = asyncio.new_event_loop()
     orchestrator: AgentOrchestrator | None = None
 
@@ -72,9 +68,9 @@ def main() -> None:
         config=config,
         on_status=window.set_status,
         on_response_ready=window.show_response,
+        on_queue_update=window.set_queue_size,
     )
 
-    # ── Async worker thread ──────────────────────────────────────────── #
     def run_worker() -> None:
         asyncio.set_event_loop(async_loop)
         try:
