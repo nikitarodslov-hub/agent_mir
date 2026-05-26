@@ -95,34 +95,34 @@ services:
     networks:
       - family_roots
 
-  # Telegram бот
-  telegram_bot:
-    build:
-      context: ./bots/telegram_bot
-      dockerfile: Dockerfile
-    container_name: family_roots_telegram_bot
-    environment:
-      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
-      API_URL: http://backend:8000/api/v1
-    depends_on:
-      - backend
-    networks:
-      - family_roots
+  # Telegram бот (отключен)
+  # telegram_bot:
+  #   build:
+  #     context: ./bots/telegram_bot
+  #     dockerfile: Dockerfile
+  #   container_name: family_roots_telegram_bot
+  #   environment:
+  #     TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+  #     API_URL: http://backend:8000/api/v1
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - family_roots
 
-  # VK бот
-  vk_bot:
-    build:
-      context: ./bots/vk_bot
-      dockerfile: Dockerfile
-    container_name: family_roots_vk_bot
-    environment:
-      VK_TOKEN: ${VK_TOKEN:-}
-      VK_GROUP_ID: ${VK_GROUP_ID:-}
-      API_URL: http://backend:8000/api/v1
-    depends_on:
-      - backend
-    networks:
-      - family_roots
+  # VK бот (отключен)
+  # vk_bot:
+  #   build:
+  #     context: ./bots/vk_bot
+  #     dockerfile: Dockerfile
+  #   container_name: family_roots_vk_bot
+  #   environment:
+  #     VK_TOKEN: ${VK_TOKEN:-}
+  #     VK_GROUP_ID: ${VK_GROUP_ID:-}
+  #     API_URL: http://backend:8000/api/v1
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - family_roots
 
   # Nginx reverse proxy
   nginx:
